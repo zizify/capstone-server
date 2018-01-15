@@ -1,12 +1,17 @@
 'use strict';
 const express = require('express');
 const bodyParser = require('body-parser');
-const jsonParser = bodyParser.json();
+// const jsonParser = bodyParser.json();
 const router = express.Router();
 const {Assignment} = require('./models');
 
+const passport = require('passport');
+const jwtAuth = passport.authenticate('jwt', { session: false });
+
 //Create a new assignment
-router.post('/teacher', jsonParser, (req, res) => {
+router.post('/teacher', jwtAuth, (req, res) => {
+	if (!req.user.isTeacher) return res.status(403).json({code: 403, message: 'Nice try, but no dice.'});
+    
 	const {title, subject, teacher, className, points, goals, instructions, assignDate, dueDate, students} = req.body;
 	Assignment.create({
 		title,
