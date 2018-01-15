@@ -25,7 +25,7 @@ router.post('/teacher', jwtAuth, (req, res) => {
 		dueDate,
 		students
 	}).then(assignment => res.status(201).json(assignment.serialize()))
-		.catch(err => res.status(500).json({code: 500, message: 'We done fucked up.', err}));
+		.catch(err => res.status(500).json({code: 500, message: 'Bad request.', err}));
 });
 
 module.exports = {router};
