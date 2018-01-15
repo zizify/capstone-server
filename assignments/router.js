@@ -20,5 +20,7 @@ router.post('/teacher', jsonParser, (req, res) => {
 		dueDate,
 		students
 	}).then(assignment => res.status(201).json(assignment.serialize()))
-		.catch(err => res.status(500).json({code: 500, message: 'We done fucked up.'}));
+		.catch(err => res.status(500).json({code: 500, message: 'We done fucked up.', err}));
 });
+
+module.exports = {router};

@@ -9,8 +9,8 @@ const AssignmentSchema = mongoose.Schema({
 	points: {type: Number, required: true},
 	goals: {type: String, required: true},
 	instructions: {type: String, required: true},
-	assignDate: {type: Date, required: true, default: Date.now },
-	dueDate: {type: Date, required: true},
+	assignDate: {type: String, required: true},
+	dueDate: {type: String, required: true},
 	students: {type: Array}
 });
 
