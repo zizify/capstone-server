@@ -3,13 +3,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const bodyParser = require('body-parser');
 const passport = require('passport');
 
 const {PORT, CLIENT_ORIGIN} = require('./config');
 const {dbConnect} = require('./db-mongoose');
 
 const { router: usersRouter } = require('./users');
-// const { router: authRouter, localStrategy, jwtStrategy } = require('./auth');
+const { router: authRouter, localStrategy, jwtStrategy } = require('./auth');
 
 mongoose.Promise = global.Promise;
 
@@ -26,20 +27,20 @@ app.use(
         origin: CLIENT_ORIGIN
     })
 );
-
-// passport.use(localStrategy);
-// passport.use(jwtStrategy);
+app.use(bodyParser.json());
+passport.use(localStrategy);
+passport.use(jwtStrategy);
 
 app.use('/api/users', usersRouter);
-// app.use('/api/auth', authRouter);
+app.use('/api/auth', authRouter);
 
-// const jwtAuth = passport.authenticate('jwt', {session: false});
+const jwtAuth = passport.authenticate('jwt', {session: false});
 
-// app.get('api/protected', jwtAuth, (req, res) => {
-//   return res.json({
-//     data: 'test'
-//   });
-// });
+app.get('/api/protected', jwtAuth, (req, res) => {
+  return res.json({
+    data: 'test'
+  });
+});
 
 function runServer(port = PORT) {
     const server = app
