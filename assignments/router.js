@@ -10,10 +10,6 @@ const passport = require('passport');
 const jwtAuth = passport.authenticate('jwt', { session: false });
 
 //Create a new assignment
-
-// router.get('/teacher', jwtAuth, (req, res) => {
-// 	console.log('hello')
-// })
 router.post('/teacher', jwtAuth, (req, res) => {
   if (!req.user.isTeacher)
     return res
@@ -143,6 +139,14 @@ router.get('/student', jwtAuth, (req, res) => {
     .catch(err => res.status(500).json({ message: 'Internal server error.' }));
 });
 
+//Gets all assignments created by currently logged in teacher
+router.get('/teacher', jwtAuth, (req, res) => {
+  Assignment.find({ teacher: req.user.username }).then(all =>
+    res.status(200).json({ all })
+  );
+});
+
+//Deletes assignment by ID for a teacher
 router.delete('/teacher/delete/:id', jwtAuth, (req, res) => {
   Assignment.findById(req.params.id)
     .then(assignment => {
