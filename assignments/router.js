@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 // const jsonParser = bodyParser.json();
 const router = express.Router();
 const {Assignment} = require('./models');
+const {User} = require('../users/models');
 
 const passport = require('passport');
 const jwtAuth = passport.authenticate('jwt', { session: false });
@@ -65,7 +66,49 @@ router.post('/teacher/add/:id', jwtAuth, (req, res) => {
 		})
 		.then(newAssignment => res.status(201).json({newAssignment}))
 		.catch(err => res.status(500).json({message: 'Internal server error'}));
+});
 
+//Retrieves all of the assignments belonging to a student user.
+router.get('/student', jwtAuth, (req, res) => {
+	User
+		.findOne({username: req.user.username})
+		.count()
+		.then(
+			count => {
+				if (count === 0) {
+					return Promise.reject({code: 422, message: 'No such user exists'});
+				}
+			})
+		.then(
+			Assignment
+				.find()
+				.then(all => {
+					let relevant = [];
+					for (let i = 0; i < all.length; i++) {
+						for (let j = 0; j < all[i].students.length; j++) {
+							if (all[i].students[j].username === req.user.username) {
+								relevant.push({
+									_id: all[i]._id,
+									title: all[i].title,
+									subject: all[i].subject,
+									teacher: all[i].teacher,
+									className: all[i].className,
+									points: all[i].points,
+									goals: all[i].goals,
+									instructions: all[i].instructions,
+									assignDate: all[i].assignDate,
+									dueDate: all[i].dueDate,
+									pointsEarned: all[i].students[j].pointsEarned,
+									grade: all[i].students[j].grade,
+									comments: all[i].students[j].comments,
+								});
+							}
+						}
+					}
+					return relevant;
+				})
+				.then(relevant => res.status(200).json({relevant})))
+		.catch(err => res.status(500).json({message: 'Internal server error.'}));
 });
 
 module.exports = {router};
