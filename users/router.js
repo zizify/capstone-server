@@ -154,14 +154,16 @@ router.post('/class/create', jwtAuth, (req, res) => {
 	User
 		.find({'username': { $in: userIds}})
 		.then(users => users.filter(each => !each.isTeacher))
-		.then(students => User
-			.findOne({username: req.user.username})
-			.then(user => {
-				user.classes.push({className, userIds});
-				user.save();
-				// return User.findByIdAndUpdate(req.user._id, {classes: user.classes.push({className, students})}, {new: true});
-			}))
-		.then(() => res.status(201).json())
+		.then(studentObjects => {
+			const students = studentObjects.map(each => each.username);
+			return User
+				.findOne({username: req.user.username})
+				.then(user => {
+					user.classes.push({className, studentIds: students});
+					user.save();
+					return user;
+				});})
+		.then(user => res.status(201).json(user))
 		.catch(err => res.status(500).json({message: 'Internal server error.', err: err}));
 });
 
