@@ -8,12 +8,7 @@ const UserSchema = mongoose.Schema({
 	firstName: { type: String },
 	lastName: { type: String },
 	isTeacher: {type: Boolean, required: true},
-	classes: [
-		{
-			name: {type: String},
-			students: {type: Array}
-		}
-	]
+	classes: {type: Array, default: []}
 });
 
 UserSchema.methods.serialize = function () {
