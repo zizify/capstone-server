@@ -7,9 +7,8 @@ const UserSchema = mongoose.Schema({
 	password: { type: String, required: true },
 	firstName: { type: String },
 	lastName: { type: String },
-  isTeacher: {type: Boolean, required: true},
-
-
+	isTeacher: {type: Boolean, required: true},
+	classes: {type: Array, default: []}
 });
 
 UserSchema.methods.serialize = function () {
@@ -17,20 +16,21 @@ UserSchema.methods.serialize = function () {
 		username: this.username || '',
 		firstName: this.firstName || '',
 		lastName: this.lastName || '',
-    isTeacher: this.isTeacher || false
+		isTeacher: this.isTeacher || false,
+		classes: this.classes || ''
 	};
 };
 
 UserSchema.methods.validatePassword = function (password) {
-  return bcrypt.compare(password, this.password);
+	return bcrypt.compare(password, this.password);
 };
 
 UserSchema.statics.hashPassword = function (password) {
-  return bcrypt.hash(password, 10);
+	return bcrypt.hash(password, 10);
 };
 
 const User = mongoose.model('User', UserSchema);
 
 module.exports = {
-  User,
+	User,
 };
