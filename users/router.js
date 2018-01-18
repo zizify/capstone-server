@@ -160,13 +160,14 @@ router.put('/class/remove', jwtAuth, (req, res) => {
 		.catch(err => res.status(500).json({message: 'Internal server error'}));
 });
 
-//Allows teacher users to add student usernames to a class.
-router.post('/class/add', jwtAuth, (req, res) => {
+//Allows teacher users to add or remove student usernames to a class.
+router.post('/class/modify', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
   
-	const {className, userIds} = req.body;
+	const {className, removeIds, addIds} = req.body;
+	const userIds = removeIds.concat(addIds);
   
 	User
 		.find({'username': { $in: userIds}})
@@ -176,15 +177,21 @@ router.post('/class/add', jwtAuth, (req, res) => {
 			return User
 				.findOne({username: req.user.username})
 				.then(user => {
-					let classAdd = user.classes.find(each => each.className === className);
+					let classModify = user.classes.find(each => each.className === className);
 					for (let i = 0; i < students.length; i++) {
-						classAdd.studentIds.push(students[i]);
+						if (addIds.indexOf(students[i]) !== -1) {
+							classModify.studentIds.push(students[i]);
+						} else if (removeIds.indexOf(students[i]) !== -1) {
+							let index = classModify.studentIds.indexOf(students[i]);
+							classModify.studentIds.splice(index, 1);
+						}
 					}
 					user.save();
 					return user;
 				})
 				.then(user => res.status(201).json(user))
 				.catch(err => {
+					console.log(err);
 					return res.status(500).json(err);});
 		});
 });
