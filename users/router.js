@@ -160,4 +160,33 @@ router.put('/class/remove', jwtAuth, (req, res) => {
 		.catch(err => res.status(500).json({message: 'Internal server error'}));
 });
 
+//Allows teacher users to add student usernames to a class.
+router.post('/class/add', jwtAuth, (req, res) => {
+	if (req.user.isTeacher === false) {
+		Promise.reject({message: 'Student users cannot create classes.'});
+	}
+  
+	const {className, userIds} = req.body;
+  
+	User
+		.find({'username': { $in: userIds}})
+		.then(users => users.filter(each => !each.isTeacher))
+		.then(studentObjects => {
+			const students = studentObjects.map(each => each.username);
+			return User
+				.findOne({username: req.user.username})
+				.then(user => {
+					let classAdd = user.classes.find(each => each.className === className);
+					for (let i = 0; i < students.length; i++) {
+						classAdd.studentIds.push(students[i]);
+					}
+					user.save();
+					return user;
+				})
+				.then(user => res.status(201).json(user))
+				.catch(err => {
+					return res.status(500).json(err);});
+		});
+});
+
 module.exports = {router};
