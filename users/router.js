@@ -35,13 +35,6 @@ router.post('/', jsonParser, (req, res) => {
 		});
 	}
 
-	// If the username and password aren't trimmed we give an error.  Users might
-	// expect that these will work without trimming (i.e. they want the password
-	// "foobar ", including the space at the end).  We need to reject such values
-	// explicitly so the users know what's happening, rather than silently
-	// trimming them and expecting the user to understand.
-	// We'll silently trim the other fields, because they aren't credentials used
-	// to log in, so it's less of a problem.
 	const explicityTrimmedFields = ['username', 'password'];
 	const nonTrimmedField = explicityTrimmedFields.find(
 		field => req.body[field].trim() !== req.body[field]
@@ -62,8 +55,6 @@ router.post('/', jsonParser, (req, res) => {
 		},
 		password: {
 			min: 3,
-			// bcrypt truncates after 72 characters, so let's not give the illusion
-			// of security by storing extra (unused) info
 			max: 72
 		}
 	};
@@ -92,8 +83,6 @@ router.post('/', jsonParser, (req, res) => {
 	}
 
 	let {username, password, firstName = '', lastName = '', isTeacher = false} = req.body;
-	// Username and password come in pre-trimmed, otherwise we throw an error
-	// before this
 	firstName = firstName.trim();
 	lastName = lastName.trim();
 
@@ -101,7 +90,6 @@ router.post('/', jsonParser, (req, res) => {
 		.count()
 		.then(count => {
 			if (count > 0) {
-				// There is an existing user with the same username
 				return Promise.reject({
 					code: 422,
 					reason: 'ValidationError',
@@ -109,7 +97,6 @@ router.post('/', jsonParser, (req, res) => {
 					location: 'username'
 				});
 			}
-			// If there is no existing user, hash the password
 			return User.hashPassword(password);
 		})
 		.then(hash => {
@@ -125,8 +112,6 @@ router.post('/', jsonParser, (req, res) => {
 			return res.status(201).json(user.serialize());
 		})
 		.catch(err => {
-			// Forward validation errors on to the client, otherwise give a 500
-			// error because something unexpected has happened
 			if (err.reason === 'ValidationError') {
 				return res.status(err.code).json(err);
 			}
@@ -134,16 +119,7 @@ router.post('/', jsonParser, (req, res) => {
 		});
 });
 
-// Never expose all your users like below in a prod application
-// we're just doing this so we have a quick way to see
-// if we're creating users. keep in mind, you can also
-// verify this in the Mongo shell.
-// router.get('/', (req, res) => {
-// 	return User.find()
-// 		.then(users => res.json(users.map(user => user.serialize())))
-// 		.catch(err => res.status(500).json({message: 'Internal server error'}));
-// });
-
+//Creates a new class attached to a teacher user
 router.post('/class/create', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
@@ -165,6 +141,23 @@ router.post('/class/create', jwtAuth, (req, res) => {
 				});})
 		.then(user => res.status(201).json(user))
 		.catch(err => res.status(500).json({message: 'Internal server error.', err: err}));
+});
+
+//Allows teacher users to delete a class.
+router.put('/class/remove', jwtAuth, (req, res) => {
+	if (req.user.isTeacher === false) {
+		Promise.reject({message: 'Student users cannot create classes.'});
+	}
+  
+	User
+		.findOne({username: req.user.username})
+		.then(user => {
+			user.classes = user.classes.filter(each => each.className !== req.body.className);
+			user.save();
+			return user;
+		})
+		.then(user => res.status(201).json(user))
+		.catch(err => res.status(500).json({message: 'Internal server error'}));
 });
 
 module.exports = {router};
