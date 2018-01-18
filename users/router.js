@@ -119,6 +119,38 @@ router.post('/', jsonParser, (req, res) => {
 		});
 });
 
+//Gets all of the classes attached to a teacher user.
+router.get('/class', jwtAuth, (req, res) => {
+	if (req.user.isTeacher === false) {
+		Promise.reject({message: 'Student users cannot create classes.'});
+	}
+  
+	User
+		.findOne({username: req.user.username})
+		.then(user => res.status(200).json({classes: user.classes}))
+		.catch(err => res.status(500).json({message: 'Internal server error'}));
+});
+
+//Gets one class given a className.
+router.get('/class/get/:id', jwtAuth, (req, res) => {
+	if (req.user.isTeacher === false) {
+		Promise.reject({message: 'Student users cannot create classes.'});
+	}
+  
+	User
+		.findOne({username: req.user.username})
+		.then(user => {
+			let specificClass = user.classes.find(each => each.className = req.params.id);
+			if (specificClass) {
+				return specificClass;
+			} else {
+				return Promise.reject({message: 'Queried class does not exist'});
+			}
+		})
+		.then(specificClass => res.status(200).json(specificClass))
+		.catch(err => res.status(500).json({message: 'Internal server error.'}));
+});
+
 //Creates a new class attached to a teacher user
 router.post('/class/create', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
