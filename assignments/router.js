@@ -139,9 +139,9 @@ router.get('/student', jwtAuth, (req, res) => {
 								pointsEarned: 0
 							};
 						}
-
+						
+						grades[relevant[i].className].assignments++;
 						if (relevant[i].grade !== null) {
-							grades[relevant[i].className].assignments++;
 							grades[relevant[i].className].points += relevant[i].points,
 							grades[relevant[i].className].pointsEarned += relevant[i].pointsEarned;
 						}
