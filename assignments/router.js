@@ -16,30 +16,24 @@ router.post('/teacher', jwtAuth, (req, res) => {
 			.status(403)
 			.json({ code: 403, message: 'Nice try, but no dice.' });
 
-	const {
-		title,
-		subject,
-		teacher,
-		className,
-		points,
-		goals,
-		instructions,
-		assignDate,
-		dueDate,
-		students
-	} = req.body;
-	Assignment.create({
-		title,
-		subject,
-		teacher,
-		className,
-		points,
-		goals,
-		instructions,
-		assignDate,
-		dueDate,
-		students
-	})
+	const { title, subject, className, points, goals, instructions, assignDate, dueDate } = req.body;
+	User
+		.findOne({username: req.user.username})
+		.then(user => {
+			const thisClass = user.classes.find(each => each.className === className);
+			const studentIds = thisClass.studentIds;
+			let students = [];
+
+			for (let i = 0; i < studentIds.length; i++) {
+				students.push({
+					username: studentIds[i],
+					pointsEarned: 0,
+					comments: '',
+					grade: null
+				});
+			}
+			return Assignment.create({title, subject, teacher: req.user.username, className, points, goals, instructions, assignDate, dueDate, students});
+		})
 		.then(assignment => res.status(201).json(assignment.serialize()))
 		.catch(err =>
 			res.status(500).json({ code: 500, message: 'Bad request.', err })
