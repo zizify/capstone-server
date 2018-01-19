@@ -128,9 +128,28 @@ router.get('/student', jwtAuth, (req, res) => {
 					}
 					return relevant;
 				})
-				.then(relevant => res.status(200).json({ relevant }))
-		)
-		.catch(err => res.status(500).json({ message: 'Internal server error.' }));
+				.then(relevant => {
+					let grades = {};
+
+					for (let i = 0; i < relevant.length; i++) {
+						if (!Object.keys(grades).includes(relevant[i].className)) {
+							grades[relevant[i].className] = {
+								assignments: 0,
+								points: 0,
+								pointsEarned: 0
+							};
+						}
+						
+						grades[relevant[i].className].assignments++;
+						if (relevant[i].grade !== null) {
+							grades[relevant[i].className].points += relevant[i].points,
+							grades[relevant[i].className].pointsEarned += relevant[i].pointsEarned;
+						}
+					}
+
+					return res.status(200).json({ relevant, grades });
+				})
+				.catch(err => res.status(500).json({ message: 'Internal server error.' })));
 });
 
 //Gets all assignments created by currently logged in teacher
