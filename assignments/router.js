@@ -12,10 +12,8 @@ const jwtAuth = passport.authenticate('jwt', { session: false });
 //Confirmed
 //Create a new assignment
 router.post('/teacher', jwtAuth, (req, res) => {
-	if (!req.user.isTeacher)
-		return res
-			.status(403)
-			.json({ code: 403, message: 'Nice try, but no dice.' });
+	if (!req.user.isTeacher) 
+		return res.status(403).json({ code: 403, message: 'Only teachers can create assignments.' });
 
 	const { title, subject, className, points, goals, instructions, assignDate, dueDate } = req.body;
 	User
@@ -44,6 +42,9 @@ router.post('/teacher', jwtAuth, (req, res) => {
 //Confirmed
 //Modify an existing assignment to change properties other than students.
 router.put('/teacher/change/:id', jwtAuth, (req, res) => {
+	if (!req.user.isTeacher)
+		return res.status(403).json({ code: 403, message: 'Only teachers can change assignments.' });
+
 	const toUpdate = {};
 	const updateableFields = [
 		'title',
@@ -72,6 +73,9 @@ router.put('/teacher/change/:id', jwtAuth, (req, res) => {
 //Deprecated, students created on assignment according to className
 //Add students to an assignment.
 router.post('/teacher/add/:id', jwtAuth, (req, res) => {
+	if (!req.user.isTeacher)
+		return res.status(403).json({ code: 403, message: 'Only teachers can add students to assignments.' });
+
 	let newStudents;
 	if ('students' in req.body) {
 		newStudents = req.body.students;
@@ -98,6 +102,9 @@ router.post('/teacher/add/:id', jwtAuth, (req, res) => {
 //Confirmed
 //Retrieves all of the assignments belonging to a student user.
 router.get('/student', jwtAuth, (req, res) => {
+	if (req.user.isTeacher)
+		return res.status(403).json({ code: 403, message: 'Only for students.' });
+
 	User.findOne({ username: req.user.username })
 		.count()
 		.then(count => {
@@ -159,6 +166,9 @@ router.get('/student', jwtAuth, (req, res) => {
 //Confirmed
 //Gets all assignments created by currently logged in teacher
 router.get('/teacher', jwtAuth, (req, res) => {
+	if (!req.user.isTeacher)
+		return res.status(403).json({ code: 403, message: 'Only a teacher can access his/her created assignments.' });
+
 	Assignment.find({ teacher: req.user.username }).then(all =>
 		res.status(200).json({ all })
 	);
@@ -167,6 +177,9 @@ router.get('/teacher', jwtAuth, (req, res) => {
 //Confirmed
 //Deletes assignment by ID for a teacher
 router.delete('/teacher/delete/:id', jwtAuth, (req, res) => {
+	if (!req.user.isTeacher)
+		return res.status(403).json({ code: 403, message: 'Only teachers can delete assignments.' });
+
 	Assignment.findById(req.params.id)
 		.then(assignment => {
 			if (assignment.teacher === req.user.username) {
@@ -179,6 +192,31 @@ router.delete('/teacher/delete/:id', jwtAuth, (req, res) => {
 		})
 		.then(() => res.status(204).end())
 		.catch(err => res.status(500).json({ message: 'Internal server error.' }));
+});
+
+//Confirmed
+//Update student objects with grades, comments, etc.
+router.post('/teacher/update/:id', jwtAuth, (req, res) => {
+	if (!req.user.isTeacher)
+		return res.status(403).json({ code: 403, message: 'Only teachers can update assignments.' });
+	
+	let {student, pointsEarned, comments} = req.body;
+
+	Assignment
+		.findById(req.params.id)
+		.then(assignment => {
+			let studentIndex = assignment.students.findIndex(each => each.username === student);
+			let studentObject = assignment.students.splice(studentIndex, 1)[0];
+			
+			studentObject['pointsEarned'] = pointsEarned;
+			studentObject['comments'] = comments;
+
+			assignment.students.push(studentObject);
+			assignment.save();
+			return assignment;
+		})
+		.then(assignment => res.status(200).json(assignment))
+		.catch(err => res.status(500).json({message: 'Internal server error.'}));
 });
 
 module.exports = { router };

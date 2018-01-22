@@ -9,7 +9,7 @@ const {User} = require('./models');
 
 // Post to register a new user
 router.post('/', jsonParser, (req, res) => {
-	const requiredFields = ['username', 'password', 'isTeacher'];
+	const requiredFields = ['password', 'firstName', 'lastName', 'isTeacher'];
 	const missingField = requiredFields.find(field => !(field in req.body));
 
 	if (missingField) {
@@ -21,7 +21,7 @@ router.post('/', jsonParser, (req, res) => {
 		});
 	}
 
-	const stringFields = ['username', 'password', 'firstName', 'lastName'];
+	const stringFields = ['password', 'firstName', 'lastName'];
 	const nonStringField = stringFields.find(
 		field => field in req.body && typeof req.body[field] !== 'string'
 	);
@@ -35,7 +35,7 @@ router.post('/', jsonParser, (req, res) => {
 		});
 	}
 
-	const explicityTrimmedFields = ['username', 'password'];
+	const explicityTrimmedFields = ['firstName', 'lastName', 'password'];
 	const nonTrimmedField = explicityTrimmedFields.find(
 		field => req.body[field].trim() !== req.body[field]
 	);
@@ -50,8 +50,11 @@ router.post('/', jsonParser, (req, res) => {
 	}
 
 	const sizedFields = {
-		username: {
-			min: 1
+		firstName: {
+			min: 2
+		},
+		lastName: {
+			min: 2
 		},
 		password: {
 			min: 3,
@@ -82,9 +85,10 @@ router.post('/', jsonParser, (req, res) => {
 		});
 	}
 
-	let {username, password, firstName = '', lastName = '', isTeacher = false} = req.body;
-	firstName = firstName.trim();
-	lastName = lastName.trim();
+	let {password, firstName, lastName, isTeacher = false} = req.body;
+	firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+	lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+	let username = firstName[0].toLowerCase() + lastName.toLowerCase();
 
 	return User.find({username})
 		.count()
