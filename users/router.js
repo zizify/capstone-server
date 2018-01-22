@@ -209,15 +209,17 @@ router.post('/class/modify', jwtAuth, (req, res) => {
 			return User
 				.findOne({username: req.user.username})
 				.then(user => {
-					let classModify = user.classes.find(each => each.className === className);
+					let classIndex = user.classes.findIndex(each => each.className === className);
+					let classModify = user.classes.splice(classIndex, 1)[0];
 					for (let i = 0; i < students.length; i++) {
-						if (addIds.indexOf(students[i]) !== -1) {
+						if (addIds.includes(students[i])) {
 							classModify.studentIds.push(students[i]);
-						} else if (removeIds.indexOf(students[i]) !== -1) {
+						} else if (removeIds.includes(students[i])) {
 							let index = classModify.studentIds.indexOf(students[i]);
 							classModify.studentIds.splice(index, 1);
 						}
 					}
+					user.classes.push(classModify);
 					user.save();
 					return user;
 				})

@@ -9,6 +9,7 @@ const { User } = require('../users/models');
 const passport = require('passport');
 const jwtAuth = passport.authenticate('jwt', { session: false });
 
+//Confirmed
 //Create a new assignment
 router.post('/teacher', jwtAuth, (req, res) => {
 	if (!req.user.isTeacher)
@@ -40,6 +41,7 @@ router.post('/teacher', jwtAuth, (req, res) => {
 		);
 });
 
+//Confirmed
 //Modify an existing assignment to change properties other than students.
 router.put('/teacher/change/:id', jwtAuth, (req, res) => {
 	const toUpdate = {};
@@ -67,6 +69,7 @@ router.put('/teacher/change/:id', jwtAuth, (req, res) => {
 		);
 });
 
+//Deprecated, students created on assignment according to className
 //Add students to an assignment.
 router.post('/teacher/add/:id', jwtAuth, (req, res) => {
 	let newStudents;
@@ -92,6 +95,7 @@ router.post('/teacher/add/:id', jwtAuth, (req, res) => {
 		.catch(err => res.status(500).json({ message: 'Internal server error' }));
 });
 
+//Confirmed
 //Retrieves all of the assignments belonging to a student user.
 router.get('/student', jwtAuth, (req, res) => {
 	User.findOne({ username: req.user.username })
@@ -152,6 +156,7 @@ router.get('/student', jwtAuth, (req, res) => {
 				.catch(err => res.status(500).json({ message: 'Internal server error.' })));
 });
 
+//Confirmed
 //Gets all assignments created by currently logged in teacher
 router.get('/teacher', jwtAuth, (req, res) => {
 	Assignment.find({ teacher: req.user.username }).then(all =>
@@ -159,6 +164,7 @@ router.get('/teacher', jwtAuth, (req, res) => {
 	);
 });
 
+//Confirmed
 //Deletes assignment by ID for a teacher
 router.delete('/teacher/delete/:id', jwtAuth, (req, res) => {
 	Assignment.findById(req.params.id)
