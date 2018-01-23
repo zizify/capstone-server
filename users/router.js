@@ -277,7 +277,7 @@ router.post('/class/create', jwtAuth, (req, res) => {
 	const {className, userIds} = req.body;
 	
 	User
-		.findOneAndUpdate({'username': req.user.username}, {$push: {classes: {className, studentIds: userIds}}}, {new: true})
+		.findOneAndUpdate({username: req.user.username}, {$push: {classes: {className, studentIds: userIds}}}, {new: true})
 		.then(teacher => res.status(201).json(teacher))
 		.catch(err => res.status(500).json({message: 'Internal server error.'}));
 });
@@ -287,16 +287,21 @@ router.put('/class/remove', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
-  
+
 	User
-		.findOne({username: req.user.username})
-		.then(user => {
-			user.classes = user.classes.filter(each => each.className !== req.body.className);
-			user.save();
-			return user;
-		})
-		.then(user => res.status(201).json(user))
-		.catch(err => res.status(500).json({message: 'Internal server error'}));
+		.findOneAndUpdate({username: req.user.username}, {$pull: {classes: {className: req.body.className}}}, {new: true})
+		.then(teacher => res.status(200).json(teacher))
+		.catch(err => res.status(500).json({message: 'Internal server error.'}));
+  
+	// User
+	// 	.findOne({username: req.user.username})
+	// 	.then(user => {
+	// 		user.classes = user.classes.filter(each => each.className !== req.body.className);
+	// 		user.save();
+	// 		return user;
+	// 	})
+	// 	.then(user => res.status(201).json(user))
+	// 	.catch(err => res.status(500).json({message: 'Internal server error'}));
 });
 
 //Allows teacher users to add or remove student usernames to a class.
