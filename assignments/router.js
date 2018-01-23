@@ -22,6 +22,7 @@ router.post('/teacher', jwtAuth, (req, res) => {
 			const thisClass = user.classes.find(each => each.className === className);
 			const studentIds = thisClass.studentIds;
 			let students = [];
+			//map
 
 			for (let i = 0; i < studentIds.length; i++) {
 				students.push({
@@ -108,7 +109,7 @@ router.get('/student', jwtAuth, (req, res) => {
 	User.findOne({ username: req.user.username })
 		.count()
 		.then(count => {
-			if (count === 0) {
+			if (!count) {
 				return Promise.reject({ code: 422, message: 'No such user exists' });
 			}
 		})
@@ -116,6 +117,7 @@ router.get('/student', jwtAuth, (req, res) => {
 			Assignment.find()
 				.then(all => {
 					let relevant = [];
+					//$all
 					for (let i = 0; i < all.length; i++) {
 						for (let j = 0; j < all[i].students.length; j++) {
 							if (all[i].students[j].username === req.user.username) {

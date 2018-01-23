@@ -259,38 +259,27 @@ router.get('/class/get/:id', jwtAuth, (req, res) => {
 		.findOne({username: req.user.username})
 		.then(user => {
 			let specificClass = user.classes.find(each => each.className = req.params.id);
-			if (specificClass) {
-				return specificClass;
-			} else {
-				return Promise.reject({message: 'Queried class does not exist'});
-			}
+			specificClass 
+				? specificClass 
+				: Promise.reject({message: 'Queried class does not exist'});
 		})
 		.then(specificClass => res.status(200).json(specificClass))
 		.catch(err => res.status(500).json({message: 'Internal server error.'}));
 });
 
+//Doesn't yet verify that submitted userIds belong to student users
 //Creates a new class attached to a teacher user
 router.post('/class/create', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
-  
+
 	const {className, userIds} = req.body;
-  
+	
 	User
-		.find({'username': { $in: userIds}})
-		.then(users => users.filter(each => !each.isTeacher))
-		.then(studentObjects => {
-			const students = studentObjects.map(each => each.username);
-			return User
-				.findOne({username: req.user.username})
-				.then(user => {
-					user.classes.push({className, studentIds: students});
-					user.save();
-					return user;
-				});})
-		.then(user => res.status(201).json(user))
-		.catch(err => res.status(500).json({message: 'Internal server error.', err: err}));
+		.findOneAndUpdate({'username': req.user.username}, {$push: {classes: {className, studentIds: userIds}}}, {new: true})
+		.then(teacher => res.status(201).json(teacher))
+		.catch(err => res.status(500).json({message: 'Internal server error.'}));
 });
 
 //Allows teacher users to delete a class.
@@ -327,6 +316,9 @@ router.post('/class/modify', jwtAuth, (req, res) => {
 			return User
 				.findOne({username: req.user.username})
 				.then(user => {
+					//findOneAndUpdate
+					//{ $push: { classesArr: <value1>, ... } }
+					//$pull $push
 					let classIndex = user.classes.findIndex(each => each.className === className);
 					let classModify = user.classes.splice(classIndex, 1)[0];
 					for (let i = 0; i < students.length; i++) {
