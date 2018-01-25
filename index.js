@@ -5,10 +5,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const passport = require('passport');
-
 const {PORT, CLIENT_ORIGIN} = require('./config');
 const {dbConnect} = require('./db-mongoose');
-
 const { router: usersRouter } = require('./users');
 const { router: assignmentsRouter } = require('./assignments');
 const { router: authRouter, localStrategy, jwtStrategy } = require('./auth');
