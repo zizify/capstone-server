@@ -7,9 +7,10 @@ const jwtAuth = passport.authenticate('jwt', { session: false });
 const router = express.Router();
 const {User} = require('./models');
 
-// Post to register a new user
+// Posts a new user to the database, requiring a first name and last name and automatically generating a username.
+
 router.post('/', jsonParser, (req, res) => {
-	const requiredFields = ['username', 'password', 'isTeacher'];
+	const requiredFields = ['password', 'firstName', 'lastName', 'isTeacher'];
 	const missingField = requiredFields.find(field => !(field in req.body));
 
 	if (missingField) {
@@ -21,7 +22,7 @@ router.post('/', jsonParser, (req, res) => {
 		});
 	}
 
-	const stringFields = ['username', 'password', 'firstName', 'lastName'];
+	const stringFields = ['password', 'firstName', 'lastName'];
 	const nonStringField = stringFields.find(
 		field => field in req.body && typeof req.body[field] !== 'string'
 	);
@@ -35,7 +36,7 @@ router.post('/', jsonParser, (req, res) => {
 		});
 	}
 
-	const explicityTrimmedFields = ['username', 'password'];
+	const explicityTrimmedFields = ['firstName', 'lastName', 'password'];
 	const nonTrimmedField = explicityTrimmedFields.find(
 		field => req.body[field].trim() !== req.body[field]
 	);
@@ -50,8 +51,11 @@ router.post('/', jsonParser, (req, res) => {
 	}
 
 	const sizedFields = {
-		username: {
-			min: 1
+		firstName: {
+			min: 2
+		},
+		lastName: {
+			min: 2
 		},
 		password: {
 			min: 3,
@@ -82,9 +86,10 @@ router.post('/', jsonParser, (req, res) => {
 		});
 	}
 
-	let {username, password, firstName = '', lastName = '', isTeacher = false} = req.body;
-	firstName = firstName.trim();
-	lastName = lastName.trim();
+	let {password, firstName, lastName, isTeacher = false} = req.body;
+	firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+	lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+	let username = firstName[0].toLowerCase() + lastName.toLowerCase();
 
 	return User.find({username})
 		.count()
@@ -118,124 +123,6 @@ router.post('/', jsonParser, (req, res) => {
 			res.status(500).json({code: 500, message: 'Internal server error'});
 		});
 });
-
-// TO BE IMPLEMENTED UPON CLIENT REFACTOR
-// Posts a new user to the database, requiring a first name and last name and automatically generating a username.
-
-// router.post('/', jsonParser, (req, res) => {
-// 	const requiredFields = ['password', 'firstName', 'lastName', 'isTeacher'];
-// 	const missingField = requiredFields.find(field => !(field in req.body));
-
-// 	if (missingField) {
-// 		return res.status(422).json({
-// 			code: 422,
-// 			reason: 'ValidationError',
-// 			message: 'Missing field',
-// 			location: missingField
-// 		});
-// 	}
-
-// 	const stringFields = ['password', 'firstName', 'lastName'];
-// 	const nonStringField = stringFields.find(
-// 		field => field in req.body && typeof req.body[field] !== 'string'
-// 	);
-
-// 	if (nonStringField) {
-// 		return res.status(422).json({
-// 			code: 422,
-// 			reason: 'ValidationError',
-// 			message: 'Incorrect field type: expected string',
-// 			location: nonStringField
-// 		});
-// 	}
-
-// 	const explicityTrimmedFields = ['firstName', 'lastName', 'password'];
-// 	const nonTrimmedField = explicityTrimmedFields.find(
-// 		field => req.body[field].trim() !== req.body[field]
-// 	);
-
-// 	if (nonTrimmedField) {
-// 		return res.status(422).json({
-// 			code: 422,
-// 			reason: 'ValidationError',
-// 			message: 'Cannot start or end with whitespace',
-// 			location: nonTrimmedField
-// 		});
-// 	}
-
-// 	const sizedFields = {
-// 		firstName: {
-// 			min: 2
-// 		},
-// 		lastName: {
-// 			min: 2
-// 		},
-// 		password: {
-// 			min: 3,
-// 			max: 72
-// 		}
-// 	};
-// 	const tooSmallField = Object.keys(sizedFields).find(
-// 		field =>
-// 			'min' in sizedFields[field] &&
-//             req.body[field].trim().length < sizedFields[field].min
-// 	);
-// 	const tooLargeField = Object.keys(sizedFields).find(
-// 		field =>
-// 			'max' in sizedFields[field] &&
-//             req.body[field].trim().length > sizedFields[field].max
-// 	);
-
-// 	if (tooSmallField || tooLargeField) {
-// 		return res.status(422).json({
-// 			code: 422,
-// 			reason: 'ValidationError',
-// 			message: tooSmallField
-// 				? `Must be at least ${sizedFields[tooSmallField]
-// 					.min} characters long`
-// 				: `Must be at most ${sizedFields[tooLargeField]
-// 					.max} characters long`,
-// 			location: tooSmallField || tooLargeField
-// 		});
-// 	}
-
-// 	let {password, firstName, lastName, isTeacher = false} = req.body;
-// 	firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-// 	lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
-// 	let username = firstName[0].toLowerCase() + lastName.toLowerCase();
-
-// 	return User.find({username})
-// 		.count()
-// 		.then(count => {
-// 			if (count > 0) {
-// 				return Promise.reject({
-// 					code: 422,
-// 					reason: 'ValidationError',
-// 					message: 'Username already taken',
-// 					location: 'username'
-// 				});
-// 			}
-// 			return User.hashPassword(password);
-// 		})
-// 		.then(hash => {
-// 			return User.create({
-// 				username,
-// 				password: hash,
-// 				firstName,
-// 				lastName,
-// 				isTeacher
-// 			});
-// 		})
-// 		.then(user => {
-// 			return res.status(201).json(user.serialize());
-// 		})
-// 		.catch(err => {
-// 			if (err.reason === 'ValidationError') {
-// 				return res.status(err.code).json(err);
-// 			}
-// 			res.status(500).json({code: 500, message: 'Internal server error'});
-// 		});
-// });
 
 //Gets all of the classes attached to a teacher user.
 router.get('/class', jwtAuth, (req, res) => {
