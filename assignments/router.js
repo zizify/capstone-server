@@ -21,16 +21,10 @@ router.post('/teacher', jwtAuth, (req, res) => {
 		.then(user => {
 			const thisClass = user.classes.find(each => each.className === className);
 			const studentIds = thisClass.studentIds;
-			let students = [];
+			let students = studentIds.map(each => {
+				return {username: each, pointsEarned: 0, comments: '', grade: null};
+			});
 
-			for (let i = 0; i < studentIds.length; i++) {
-				students.push({
-					username: studentIds[i],
-					pointsEarned: 0,
-					comments: '',
-					grade: null
-				});
-			}
 			return Assignment.create({title, subject, teacher: req.user.username, className, points, goals, instructions, assignDate, dueDate, students});
 		})
 		.then(assignment => res.status(201).json(assignment.serialize()))
