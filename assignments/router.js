@@ -64,35 +64,6 @@ router.put('/teacher/change/:id', jwtAuth, (req, res) => {
 		);
 });
 
-//Deprecated, students created on assignment according to className
-//Add students to an assignment.
-router.post('/teacher/add/:id', jwtAuth, (req, res) => {
-	if (!req.user.isTeacher)
-		return res.status(403).json({ code: 403, message: 'Only teachers can add students to assignments.' });
-
-	let newStudents;
-	if ('students' in req.body) {
-		newStudents = req.body.students;
-	} else {
-		res.status(500).json({ message: 'Internal server error' });
-	}
-
-	Assignment.findById(req.params.id)
-		.then(assignment => {
-			let newArray = assignment.students;
-			for (let i = 0; i < newStudents.length; i++) {
-				newArray.push(newStudents[i]);
-			}
-			return Assignment.findByIdAndUpdate(
-				req.params.id,
-				{ students: assignment.students },
-				{ new: true }
-			);
-		})
-		.then(newAssignment => res.status(201).json({ newAssignment }))
-		.catch(err => res.status(500).json({ message: 'Internal server error' }));
-});
-
 //Confirmed
 //Retrieves all of the assignments belonging to a student user.
 router.get('/student', jwtAuth, (req, res) => {
