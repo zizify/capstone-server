@@ -79,53 +79,67 @@ router.get('/student', jwtAuth, (req, res) => {
 		})
 		.then(
 			Assignment.find()
-				.then(all => {
-					let relevant = [];
-					for (let i = 0; i < all.length; i++) {
-						for (let j = 0; j < all[i].students.length; j++) {
-							if (all[i].students[j].username === req.user.username) {
-								relevant.push({
-									_id: all[i]._id,
-									title: all[i].title,
-									subject: all[i].subject,
-									teacher: all[i].teacher,
-									className: all[i].className,
-									points: all[i].points,
-									goals: all[i].goals,
-									instructions: all[i].instructions,
-									assignDate: all[i].assignDate,
-									dueDate: all[i].dueDate,
-									pointsEarned: all[i].students[j].pointsEarned,
-									grade: all[i].students[j].grade,
-									comments: all[i].students[j].comments
-								});
-							}
-						}
-					}
-					return relevant;
+				.then(assignments => {
+					let relevantAssignments = assignments.filter(assignment => {
+						return assignment.students.find(student => {
+							return student.username === req.user.username;
+						})
+					}).map(assignment => {
+						const studentObject = assignment.students.find(student => student.username === req.user.username);
+						delete assignment._doc.students
+						return {...assignment._doc, foo: 'bar'};
+					});
+
+					console.log(relevantAssignments);
+
+					// console.log(relevantAssignments);
+					// 	for (let i = 0; i < all.length; i++) {
+					// 		for (let j = 0; j < all[i].students.length; j++) {
+					// 			if (all[i].students[j].username === req.user.username) {
+					// 				relevant.push({
+					// 					_id: all[i]._id,
+					// 					title: all[i].title,
+					// 					subject: all[i].subject,
+					// 					teacher: all[i].teacher,
+					// 					className: all[i].className,
+					// 					points: all[i].points,
+					// 					goals: all[i].goals,
+					// 					instructions: all[i].instructions,
+					// 					assignDate: all[i].assignDate,
+					// 					dueDate: all[i].dueDate,
+					// 					pointsEarned: all[i].students[j].pointsEarned,
+					// 					grade: all[i].students[j].grade,
+					// 					comments: all[i].students[j].comments
+					// 				});
+					// 			}
+					// 		}
+					// 	}
+					return assignments;
 				})
 				.then(relevant => {
 					let grades = {};
 
-					for (let i = 0; i < relevant.length; i++) {
-						if (!Object.keys(grades).includes(relevant[i].className)) {
-							grades[relevant[i].className] = {
-								assignments: 0,
-								points: 0,
-								pointsEarned: 0
-							};
-						}
+					// for (let i = 0; i < relevant.length; i++) {
+					// 	if (!Object.keys(grades).includes(relevant[i].className)) {
+					// 		grades[relevant[i].className] = {
+					// 			assignments: 0,
+					// 			points: 0,
+					// 			pointsEarned: 0
+					// 		};
+					// 	}
 						
-						grades[relevant[i].className].assignments++;
-						if (relevant[i].pointsEarned && relevant[i].points) {
-							grades[relevant[i].className].points += relevant[i].points,
-							grades[relevant[i].className].pointsEarned += relevant[i].pointsEarned;
-						}
-					}
+					// 	grades[relevant[i].className].assignments++;
+					// 	if (relevant[i].pointsEarned && relevant[i].points) {
+					// 		grades[relevant[i].className].points += relevant[i].points,
+					// 		grades[relevant[i].className].pointsEarned += relevant[i].pointsEarned;
+					// 	}
+					// }
 
 					return res.status(200).json({ relevant, grades });
 				})
-				.catch(err => res.status(500).json({ message: 'Internal server error.' })));
+				.catch(err => {
+					console.log(err);
+					return res.status(500).json({ message: 'Internal server error.' });}));
 });
 
 //Confirmed
@@ -170,21 +184,20 @@ router.post('/teacher/update/:id', jwtAuth, (req, res) => {
 		
 	const {student} = req.body;		
 
-	let pointsEarned;
-	let comments;
-
 	Assignment
 		.findById(req.params.id)
 		.then(assignment => {
 			let studentObject = assignment.students.find(each => each.username === student);
+			let pointsEarned;
+			let comments;
 
-			req.body.pointsEarned 
-				? pointsEarned = req.body.pointsEarned
-				: pointsEarned = studentObject.pointsEarned;
+			if (req.body.pointsEarned) {
+				pointsEarned = req.body.pointsEarned;
+			}
 
-			req.body.comments
-				? comments = req.body.comments
-				: comments = studentObject.comments;
+			if (req.body.comments) {
+				comments = studentObject.comments;
+			}
 			
 			studentObject['pointsEarned'] = pointsEarned;
 			studentObject['comments'] = comments;
