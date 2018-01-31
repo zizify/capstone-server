@@ -165,22 +165,35 @@ router.post('/teacher/update/:id', jwtAuth, (req, res) => {
 	if (!req.user.isTeacher)
 		return res.status(403).json({ code: 403, message: 'Only teachers can update assignments.' });
 	
-	let {student, pointsEarned, comments} = req.body;
+	if (!req.body.student)
+		return res.status(422).json({code: 422, message: 'Student missing from req body.'});
+		
+	const {student} = req.body;		
+
+	let pointsEarned;
+	let comments;
 
 	Assignment
 		.findById(req.params.id)
 		.then(assignment => {
-			let studentIndex = assignment.students.findIndex(each => each.username === student);
-			let studentObject = assignment.students.splice(studentIndex, 1)[0];
+			let studentObject = assignment.students.find(each => each.username === student);
+
+			req.body.pointsEarned 
+				? pointsEarned = req.body.pointsEarned
+				: pointsEarned = studentObject.pointsEarned;
+
+			req.body.comments
+				? comments = req.body.comments
+				: comments = studentObject.comments;
 			
 			studentObject['pointsEarned'] = pointsEarned;
 			studentObject['comments'] = comments;
+			studentObject.grade = Math.floor((pointsEarned/assignment.points)*100)/100;
 
-			assignment.students.push(studentObject);
-			assignment.save();
 			return assignment;
 		})
-		.then(assignment => res.status(200).json(assignment))
+		.then(assignment => Assignment.findByIdAndUpdate(req.params.id, assignment))
+		.then(() => res.status(200).end())
 		.catch(err => res.status(500).json({message: 'Internal server error.'}));
 });
 
