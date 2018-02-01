@@ -81,73 +81,34 @@ router.get('/student', jwtAuth, (req, res) => {
 			Assignment.find()
 				.then(assignments => {
 					let relevantAssignments = assignments.filter(assignment => {
-						return assignment.students.find(student => {
-							return student.username === req.user.username;
-						})
+						return assignment.students.find(student => student.username === req.user.username)
 					}).map(assignment => {
 						const studentObject = assignment.students.find(student => student.username === req.user.username);
 						delete assignment._doc.students
+						delete assignment._doc.__v
 						return {...assignment._doc, username: studentObject.username, pointsEarned: studentObject.pointsEarned, comments: studentObject.comments, grade: studentObject.grade };
 					});
 
-					// console.log(relevantAssignments);
-					// 	for (let i = 0; i < all.length; i++) {
-					// 		for (let j = 0; j < all[i].students.length; j++) {
-					// 			if (all[i].students[j].username === req.user.username) {
-					// 				relevant.push({
-					// 					_id: all[i]._id,
-					// 					title: all[i].title,
-					// 					subject: all[i].subject,
-					// 					teacher: all[i].teacher,
-					// 					className: all[i].className,
-					// 					points: all[i].points,
-					// 					goals: all[i].goals,
-					// 					instructions: all[i].instructions,
-					// 					assignDate: all[i].assignDate,
-					// 					dueDate: all[i].dueDate,
-					// 					pointsEarned: all[i].students[j].pointsEarned,
-					// 					grade: all[i].students[j].grade,
-					// 					comments: all[i].students[j].comments
-					// 				});
-					// 			}
-					// 		}
-					// 	}
 					return relevantAssignments;
 				})
 				.then(relevant => {
-					let grades = {};
-
-					relevant.forEach(assignment => {
-						if (!Object.keys(grades).includes(assignment.className)) {
-							grades[assignment.className] = {
+					const grades = relevant.reduce((obj, assignment) => {
+						if (!obj[assignment.className]) {
+							obj[assignment.className] = {
 								assignments: 0,
 								points: 0,
 								pointsEarned: 0
-							};
+							}
 						}
 
-						grades[assignment.className].assignments++;
+						obj[assignment.className].assignments++
 						if (assignment.pointsEarned && assignment.points) {
-							grades[assignment.className].points += assignment.points;
-							grades[assignment.className].pointsEarned += assignment.pointsEarned;
-						}
-					})
-
-					// for (let i = 0; i < relevant.length; i++) {
-					// 	if (!Object.keys(grades).includes(relevant[i].className)) {
-					// 		grades[relevant[i].className] = {
-					// 			assignments: 0,
-					// 			points: 0,
-					// 			pointsEarned: 0
-					// 		};
-					// 	}
-						
-					// 	grades[relevant[i].className].assignments++;
-					// 	if (relevant[i].pointsEarned && relevant[i].points) {
-					// 		grades[relevant[i].className].points += relevant[i].points,
-					// 		grades[relevant[i].className].pointsEarned += relevant[i].pointsEarned;
-					// 	}
-					// }
+							obj[assignment.className].points += assignment.points;
+							obj[assignment.className].pointsEarned += assignment.pointsEarned;
+							}
+							
+						return obj;
+					}, {})
 
 					return res.status(200).json({ relevant, grades });
 				})
