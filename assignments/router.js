@@ -1,7 +1,6 @@
 'use strict';
 const express = require('express');
 const bodyParser = require('body-parser');
-// const jsonParser = bodyParser.json();
 const router = express.Router();
 const { Assignment } = require('./models');
 const { User } = require('../users/models');
