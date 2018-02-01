@@ -36,7 +36,7 @@ AssignmentSchema.methods.serialize = function () {
 	return { title, subject, teacher, className, points, goals, instructions, assignDate, dueDate, students };
 };
 
-const Assignment = mongoose.model('Assignment', AssignmentSchema);
+const Assignment = mongoose.models.Assignment || mongoose.model('User', AssignmentSchema);
 
 module.exports = {
 	Assignment,

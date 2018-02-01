@@ -44,8 +44,10 @@ app.get('/api/protected', jwtAuth, (req, res) => {
 	});
 });
 
+let server;
+
 function runServer(port = PORT) {
-	const server = app
+	server = app
 		.listen(port, () => {
 			console.info(`App listening on port ${server.address().port}`);
 		})
@@ -55,9 +57,22 @@ function runServer(port = PORT) {
 		});
 }
 
+function closeServer() {
+	return new Promise((resolve, reject) => {
+	  server.close(err => {
+			if (err) {
+		  		reject(err);
+		  		return;
+			} else {
+				resolve();
+			}
+		});
+	  });
+}
+
 if (require.main === module) {
 	dbConnect();
 	runServer();
 }
 
-module.exports = {app};
+module.exports = {app, runServer, closeServer};

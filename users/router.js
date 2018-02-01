@@ -8,6 +8,10 @@ const router = express.Router();
 const {User} = require('./models');
 
 // Post to register a new user
+router.get('/test', (req, res) => {
+	res.send('string');
+});
+
 router.post('/', jsonParser, (req, res) => {
 	const requiredFields = ['username', 'password', 'isTeacher'];
 	const missingField = requiredFields.find(field => !(field in req.body));
