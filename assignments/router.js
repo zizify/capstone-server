@@ -87,10 +87,8 @@ router.get('/student', jwtAuth, (req, res) => {
 					}).map(assignment => {
 						const studentObject = assignment.students.find(student => student.username === req.user.username);
 						delete assignment._doc.students
-						return {...assignment._doc, foo: 'bar'};
+						return {...assignment._doc, username: studentObject.username, pointsEarned: studentObject.pointsEarned, comments: studentObject.comments, grade: studentObject.grade };
 					});
-
-					console.log(relevantAssignments);
 
 					// console.log(relevantAssignments);
 					// 	for (let i = 0; i < all.length; i++) {
@@ -114,10 +112,26 @@ router.get('/student', jwtAuth, (req, res) => {
 					// 			}
 					// 		}
 					// 	}
-					return assignments;
+					return relevantAssignments;
 				})
 				.then(relevant => {
 					let grades = {};
+
+					relevant.forEach(assignment => {
+						if (!Object.keys(grades).includes(assignment.className)) {
+							grades[assignment.className] = {
+								assignments: 0,
+								points: 0,
+								pointsEarned: 0
+							};
+						}
+
+						grades[assignment.className].assignments++;
+						if (assignment.pointsEarned && assignment.points) {
+							grades[assignment.className].points += assignment.points;
+							grades[assignment.className].pointsEarned += assignment.pointsEarned;
+						}
+					})
 
 					// for (let i = 0; i < relevant.length; i++) {
 					// 	if (!Object.keys(grades).includes(relevant[i].className)) {
