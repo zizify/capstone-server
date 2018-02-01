@@ -1,7 +1,6 @@
 'use strict';
 const express = require('express');
 const bodyParser = require('body-parser');
-// const jsonParser = bodyParser.json();
 const router = express.Router();
 const { Assignment } = require('./models');
 const { User } = require('../users/models');
@@ -21,16 +20,10 @@ router.post('/teacher', jwtAuth, (req, res) => {
 		.then(user => {
 			const thisClass = user.classes.find(each => each.className === className);
 			const studentIds = thisClass.studentIds;
-			let students = [];
+			let students = studentIds.map(each => {
+				return {username: each, pointsEarned: 0, comments: '', grade: null};
+			});
 
-			for (let i = 0; i < studentIds.length; i++) {
-				students.push({
-					username: studentIds[i],
-					pointsEarned: 0,
-					comments: '',
-					grade: null
-				});
-			}
 			return Assignment.create({title, subject, teacher: req.user.username, className, points, goals, instructions, assignDate, dueDate, students});
 		})
 		.then(assignment => res.status(201).json(assignment.serialize()))
@@ -70,35 +63,6 @@ router.put('/teacher/change/:id', jwtAuth, (req, res) => {
 		);
 });
 
-//Deprecated, students created on assignment according to className
-//Add students to an assignment.
-router.post('/teacher/add/:id', jwtAuth, (req, res) => {
-	if (!req.user.isTeacher)
-		return res.status(403).json({ code: 403, message: 'Only teachers can add students to assignments.' });
-
-	let newStudents;
-	if ('students' in req.body) {
-		newStudents = req.body.students;
-	} else {
-		res.status(500).json({ message: 'Internal server error' });
-	}
-
-	Assignment.findById(req.params.id)
-		.then(assignment => {
-			let newArray = assignment.students;
-			for (let i = 0; i < newStudents.length; i++) {
-				newArray.push(newStudents[i]);
-			}
-			return Assignment.findByIdAndUpdate(
-				req.params.id,
-				{ students: assignment.students },
-				{ new: true }
-			);
-		})
-		.then(newAssignment => res.status(201).json({ newAssignment }))
-		.catch(err => res.status(500).json({ message: 'Internal server error' }));
-});
-
 //Confirmed
 //Retrieves all of the assignments belonging to a student user.
 router.get('/student', jwtAuth, (req, res) => {
@@ -114,53 +78,42 @@ router.get('/student', jwtAuth, (req, res) => {
 		})
 		.then(
 			Assignment.find()
-				.then(all => {
-					let relevant = [];
-					for (let i = 0; i < all.length; i++) {
-						for (let j = 0; j < all[i].students.length; j++) {
-							if (all[i].students[j].username === req.user.username) {
-								relevant.push({
-									_id: all[i]._id,
-									title: all[i].title,
-									subject: all[i].subject,
-									teacher: all[i].teacher,
-									className: all[i].className,
-									points: all[i].points,
-									goals: all[i].goals,
-									instructions: all[i].instructions,
-									assignDate: all[i].assignDate,
-									dueDate: all[i].dueDate,
-									pointsEarned: all[i].students[j].pointsEarned,
-									grade: all[i].students[j].grade,
-									comments: all[i].students[j].comments
-								});
-							}
-						}
-					}
-					return relevant;
+				.then(assignments => {
+					let relevantAssignments = assignments.filter(assignment => {
+						return assignment.students.find(student => student.username === req.user.username)
+					}).map(assignment => {
+						const studentObject = assignment.students.find(student => student.username === req.user.username);
+						delete assignment._doc.students
+						delete assignment._doc.__v
+						return {...assignment._doc, username: studentObject.username, pointsEarned: studentObject.pointsEarned, comments: studentObject.comments, grade: studentObject.grade };
+					});
+
+					return relevantAssignments;
 				})
 				.then(relevant => {
-					let grades = {};
-
-					for (let i = 0; i < relevant.length; i++) {
-						if (!Object.keys(grades).includes(relevant[i].className)) {
-							grades[relevant[i].className] = {
+					const grades = relevant.reduce((obj, assignment) => {
+						if (!obj[assignment.className]) {
+							obj[assignment.className] = {
 								assignments: 0,
 								points: 0,
 								pointsEarned: 0
-							};
+							}
 						}
-						
-						grades[relevant[i].className].assignments++;
-						if (relevant[i].pointsEarned && relevant[i].points) {
-							grades[relevant[i].className].points += relevant[i].points,
-							grades[relevant[i].className].pointsEarned += relevant[i].pointsEarned;
-						}
-					}
+
+						obj[assignment.className].assignments++
+						if (assignment.pointsEarned && assignment.points) {
+							obj[assignment.className].points += assignment.points;
+							obj[assignment.className].pointsEarned += assignment.pointsEarned;
+							}
+							
+						return obj;
+					}, {})
 
 					return res.status(200).json({ relevant, grades });
 				})
-				.catch(err => res.status(500).json({ message: 'Internal server error.' })));
+				.catch(err => {
+					console.log(err);
+					return res.status(500).json({ message: 'Internal server error.' });}));
 });
 
 //Confirmed
@@ -200,22 +153,34 @@ router.post('/teacher/update/:id', jwtAuth, (req, res) => {
 	if (!req.user.isTeacher)
 		return res.status(403).json({ code: 403, message: 'Only teachers can update assignments.' });
 	
-	let {student, pointsEarned, comments} = req.body;
+	if (!req.body.student)
+		return res.status(422).json({code: 422, message: 'Student missing from req body.'});
+		
+	const {student} = req.body;		
 
 	Assignment
 		.findById(req.params.id)
 		.then(assignment => {
-			let studentIndex = assignment.students.findIndex(each => each.username === student);
-			let studentObject = assignment.students.splice(studentIndex, 1)[0];
+			let studentObject = assignment.students.find(each => each.username === student);
+			let pointsEarned;
+			let comments;
+
+			if (req.body.pointsEarned) {
+				pointsEarned = req.body.pointsEarned;
+			}
+
+			if (req.body.comments) {
+				comments = studentObject.comments;
+			}
 			
 			studentObject['pointsEarned'] = pointsEarned;
 			studentObject['comments'] = comments;
+			studentObject.grade = Math.floor((pointsEarned/assignment.points)*100)/100;
 
-			assignment.students.push(studentObject);
-			assignment.save();
 			return assignment;
 		})
-		.then(assignment => res.status(200).json(assignment))
+		.then(assignment => Assignment.findByIdAndUpdate(req.params.id, assignment))
+		.then(() => res.status(200).end())
 		.catch(err => res.status(500).json({message: 'Internal server error.'}));
 });
 
