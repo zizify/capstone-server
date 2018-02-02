@@ -17,15 +17,38 @@ process.stdout.write('\x1Bc\n');
 const expect = chai.expect;
 chai.use(chaiHttp);
 
-before(function() {
-	return dbConnect(TEST_DATABASE_URL);
-});
+describe('Creates a user', function() {
+	const username = 'tuser';
+	const password = 'test';
+	const firstName = 'Test';
+	const lastName = 'User';
+	const isTeacher = false;
 
-after(function() {
-	return dbDisconnect();
-});
 
-describe('Mocha and Chai', function() {
+	before(function() {
+		return dbConnect(TEST_DATABASE_URL);
+	});
+    
+	after(function() {
+		return dbDisconnect();
+	});
+    
+	beforeEach(() => {
+		return User.hashPassword(password).then(password => {
+			User.create({
+				username,
+				password,
+				firstName,
+				lastName,
+				isTeacher
+			});
+		});
+	});
+    
+	afterEach(() => {
+		return User.remove({});
+	});
+
 	it('should be properly setup', function() {
 		expect(true).to.be.true;
 	});
