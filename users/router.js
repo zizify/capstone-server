@@ -242,7 +242,7 @@ router.get('/class', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
-  
+
 	User
 		.findOne({username: req.user.username})
 		.then(user => res.status(200).json({classes: user.classes}))
@@ -254,7 +254,7 @@ router.get('/class/get/:id', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
-  
+
 	User
 		.findOne({username: req.user.username})
 		.then(user => {
@@ -274,9 +274,9 @@ router.post('/class/create', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
-  
+
 	const {className, userIds} = req.body;
-  
+
 	User
 		.find({'username': { $in: userIds}})
 		.then(users => users.filter(each => !each.isTeacher))
@@ -287,10 +287,13 @@ router.post('/class/create', jwtAuth, (req, res) => {
 				.then(user => {
 					user.classes.push({className, studentIds: students});
 					user.save();
-					return user;
+					return {className, studentIds: students};
 				});})
 		.then(user => res.status(201).json(user))
-		.catch(err => res.status(500).json({message: 'Internal server error.', err: err}));
+		.catch(err => {
+			console.log('server error',err)
+			res.status(500).json({message: 'Internal server error.', err: err})
+		});
 });
 
 //Allows teacher users to delete a class.
@@ -298,7 +301,7 @@ router.put('/class/remove', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
-  
+
 	User
 		.findOne({username: req.user.username})
 		.then(user => {
@@ -315,10 +318,10 @@ router.post('/class/modify', jwtAuth, (req, res) => {
 	if (req.user.isTeacher === false) {
 		Promise.reject({message: 'Student users cannot create classes.'});
 	}
-  
+
 	const {className, removeIds, addIds} = req.body;
 	const userIds = removeIds.concat(addIds);
-  
+
 	User
 		.find({'username': { $in: userIds}})
 		.then(users => users.filter(each => !each.isTeacher))
