@@ -5,6 +5,7 @@ const chaiHttp = require('chai-http');
 
 const {TEST_DATABASE_URL} = require('../config');
 const {dbConnect, dbDisconnect} = require('../db-mongoose');
+// const {app} = require('../index');
 const {User} = require('../users/models');
 const { JWT_SECRET } = require('../config');
 const jwt = require('jsonwebtoken');
@@ -26,7 +27,7 @@ describe('Creates a user', function() {
 
 
 	before(function() {
-		return dbConnect(TEST_DATABASE_URL);
+		return dbConnect(TEST_DATABASE_URL, 8081);
 	});
     
 	after(function() {
@@ -49,7 +50,12 @@ describe('Creates a user', function() {
 		return User.remove({});
 	});
 
-	it('should be properly setup', function() {
-		expect(true).to.be.true;
+	describe('/api/auth/login', () => {
+		it('Should return an auth token', () => {
+			// console.log(app);
+			// return chai
+			// .request(HOST)
+			// .post('/api/auth/login');
+		});
 	});
 });

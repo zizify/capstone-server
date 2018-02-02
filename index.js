@@ -60,4 +60,5 @@ if (require.main === module) {
 	runServer();
 }
 
+// console.log(app);
 module.exports = {app};
